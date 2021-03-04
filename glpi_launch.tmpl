@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "Configure GLPI DB"
+cd /usr/share/nginx/html/glpi && sudo -u apache yes | sudo -u apache php bin/console db:configure --db-host=${DB_HOST} --db-port=3306 --db-user=${DB_USER} --db-password=${DB_PASSWORD}  --db-name=${DB_NAME}
+cd /usr/share/nginx/html/glpi && sudo -u apache yes | sudo -u apache php bin/console glpi:security:change_key
+rm -rf /usr/share/nginx/html/glpi/install
+echo "GLPI DB Configuration DONE"

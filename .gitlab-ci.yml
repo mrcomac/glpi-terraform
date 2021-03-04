@@ -1,0 +1,70 @@
+default:
+  image: marcosmachado/docker-terraform-packer
+  before_script:
+    - terraform init
+  cache:
+    paths:
+      - .terraform
+      - glpi.plan
+
+stages:
+  - packer_flush
+  - packer_build
+  - terraform_plan
+  - terraform_apply
+
+variables:
+  AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  AWS_REGION: $AWS_REGION
+  AWS_DEFAULT_REGION: $AWS_REGION
+  TF_VAR_git_revision: ${CI_COMMIT_SHORT_SHA}
+
+packer-flush:
+  stage: packer_flush
+  script:
+    - export IMAGE_ID=$(aws ec2 describe-images --filter "Name=tag:Name,Values=ami-ifpr-glpi-packer" --query Images[*].ImageId --out text)
+    - export SNAP_ID=$(aws ec2 describe-snapshots --filter "Name=tag:Name,Values=ami-ifpr-glpi-packer" --query Snapshots[*].{ID:SnapshotId} --out text)
+    - if [ -z $IMAGE_ID ]; then echo "Ok" ; else aws ec2 deregister-image --image-id $IMAGE_ID && aws ec2 delete-snapshot --snapshot-id $SNAP_ID ; fi
+  allow_failure: false
+  only:
+    changes:
+    - glpi-packer.json
+    - ./packer_provisioners/scripts/*
+    - .gitlab-ci.yml
+
+packer-build:
+  stage: packer_build
+  script:
+    - echo "Packer Stage"
+    - packer build glpi-packer.json
+  allow_failure: false
+  only:
+    changes:
+    - glpi-packer.json
+    - ./packer_provisioners/scripts/*
+    - .gitlab-ci.yml
+
+terraform-plan:
+  stage: terraform_plan
+  script:
+    - echo "Plan Terraform"
+    - terraform plan -out glpi.plan
+  allow_failure: false
+  only:
+    changes:
+    - "*.{tf}"
+    - "*.{tmpl}"
+    - .gitlab-ci.yml
+
+terraform-apply:
+  stage: terraform_apply
+  script:
+    - echo "Apply Terraform"
+    - terraform apply glpi.plan
+  allow_failure: false
+  only:
+    changes:
+    - "*.{tf}"
+    - "*.{tmpl}"
+    - .gitlab-ci.yml

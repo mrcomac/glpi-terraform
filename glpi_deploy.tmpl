@@ -1,0 +1,13 @@
+#!/bin/bash
+yum install nc -y
+echo "Waiting DB port open"
+echo "${DB_HOST}"
+while ! nc -z ${DB_HOST} 3306 2> /dev/null; do
+          sleep 0.3
+done
+echo "DB port is opened"
+echo "Init GLPI DB Connection"
+cd /usr/share/nginx/html/glpi && sudo -u apache yes | sudo -u apache php bin/console db:install --db-host=${DB_HOST} --db-port=3306 --db-user=${DB_USER} --db-password=${DB_PASSWORD}  --db-name=${DB_NAME}
+rm -rf /usr/share/nginx/html/glpi/install
+echo "DONE GLPI DB Configuration"
+poweroff
