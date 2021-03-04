@@ -37,12 +37,10 @@ variable "zone_id" {
 
 variable "domain_name" {
   type = string
-  default = "ifpr-devops.ga"
 }
 
 variable "subdomain" {
   type = string
-  default = "glpi"
 }
 
 variable "project_owner" {
